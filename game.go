@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	dpi                 = 72
-	informationFontSize = 100
+	dpi           = 72
+	smallFontSize = 32
+	bigFontSize   = 100
 )
 
 type Game struct {
@@ -73,37 +74,59 @@ func (g *Game) calcFrame() {
 
 func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
 	
-	height := 320
-
-	text := "Loading" + strings.Repeat(".", int(time.Now().Unix()%4))
+	height := 400
 
 	foreground := image.White
 	background := image.NewUniform(color.RGBA{0x35, 0x67, 0x99, 0xFF})
 
+	// Sprite to write text on
 	textSprite := images.NewImage(sz.WidthPx, height/*sz.HeightPx*/)
 
 	// Background to draw on
 	draw.Draw(textSprite.RGBA, textSprite.RGBA.Bounds(), background, image.ZP, draw.Src)
 
+	// Write the Loading... text on the sprite
+	
+	loadingText := "Loading" + strings.Repeat(".", int(time.Now().Unix()%4))
+	
 	d := &font.Drawer{
 		Dst: textSprite.RGBA,
 		Src: foreground,
 		Face: truetype.NewFace(g.font, &truetype.Options{
-			Size:    informationFontSize,
+			Size:    bigFontSize,
 			DPI:     dpi,
 			Hinting: font.HintingNone,
 		}),
 	}
-	dy := int(math.Ceil(informationFontSize * dpi / 72))
+	dy := int(math.Ceil(bigFontSize * dpi / 72))
 	textWidth := d.MeasureString("Loading...")
 	d.Dot = fixed.Point26_6{
 		X: fixed.I(sz.Size().X/2) - (textWidth / 2),
 		Y: fixed.I(height/*sz.Size().Y*//2 + dy/2),
 	}
-	d.DrawString(text)
-
-	textSprite.Upload()
+	d.DrawString(loadingText)
 	
+	// Write the resolution on the sprite
+	
+	resolutionText := fmt.Sprintf("%vpx * %vpx", sz.WidthPx, sz.HeightPx)
+	d = &font.Drawer{
+		Dst: textSprite.RGBA,
+		Src: foreground,
+		Face: truetype.NewFace(g.font, &truetype.Options{
+			Size:    smallFontSize,
+			DPI:     dpi,
+			Hinting: font.HintingNone,
+		}),
+	}
+	dy = int(math.Ceil(smallFontSize * dpi / 72))
+	d.Dot = fixed.Point26_6{
+		X: fixed.I(0),
+		Y: fixed.I(height - dy/2),
+	}
+	d.DrawString(resolutionText)
+
+	// Draw the text sprite on the screen
+	textSprite.Upload()
 	textSprite.Draw(
 		sz,
 		geom.Point{},
