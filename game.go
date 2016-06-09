@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -26,12 +25,13 @@ import (
 
 const (
 	dpi           = 72
-	smallFontSize = 32
+	smallFontSize = 20
 	bigFontSize   = 100
 )
 
 type Game struct {
 	font     *truetype.Font
+	fontType string 	 
 	lastCalc clock.Time // when we last calculated a frame
 }
 
@@ -44,12 +44,15 @@ func NewGame() *Game {
 func (g *Game) reset() {
 	var err error
 	
-	g.font, err = freetype.ParseFont(mfont.Default())
+	g.font, err = truetype.Parse(mfont.Default())
+	g.fontType = "Default"
 	if err != nil {
-		fmt.Println("Unable to parse default font, trying monospace")
-		g.font, err = freetype.ParseFont(mfont.Monospace())
+		g.fontType = fmt.Sprintf("%v", err)
+		fmt.Println("Unable to parse default font:" + g.fontType)
+		fmt.Println("Using monospace")
+		g.font, err = truetype.Parse(mfont.Monospace())
 		if err != nil {
-			log.Fatalf("error parsing monospace font: %v", err)
+			log.Fatalf("error parsing font: %v", err)
 		}
 	}
 
@@ -108,7 +111,7 @@ func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
 	
 	// Write the resolution on the sprite
 	
-	resolutionText := fmt.Sprintf("%vpx * %vpx", sz.WidthPx, sz.HeightPx)
+	resolutionText := fmt.Sprintf(/*"%vpx * %vpx - %v"*/"%v", /*sz.WidthPx, sz.HeightPx, */g.fontType)
 	d = &font.Drawer{
 		Dst: textSprite.RGBA,
 		Src: foreground,
