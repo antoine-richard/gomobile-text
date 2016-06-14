@@ -11,27 +11,30 @@ import (
 	"math"
 	"strings"
 	"time"
+	"io/ioutil"
 
+	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 	"golang.org/x/mobile/event/size"
-	mfont "golang.org/x/mobile/exp/font"
 	"golang.org/x/mobile/exp/gl/glutil"
 	"golang.org/x/mobile/exp/sprite/clock"
 	"golang.org/x/mobile/geom"
 	"golang.org/x/mobile/gl"
+	"golang.org/x/mobile/asset"
 )
 
 const (
 	dpi           = 72
 	smallFontSize = 20
 	bigFontSize   = 100
+	ttfFile		  = "System San Francisco Display Regular.ttf"
 )
 
 type Game struct {
 	font     *truetype.Font
-	fontType string 	 
+	fontType string
 	lastCalc clock.Time // when we last calculated a frame
 }
 
@@ -43,18 +46,34 @@ func NewGame() *Game {
 
 func (g *Game) reset() {
 	var err error
-	
-	g.font, err = truetype.Parse(mfont.Default())
-	g.fontType = "Default"
+
+	g.fontType = ttfFile
+	f, err := asset.Open(ttfFile)
 	if err != nil {
-		g.fontType = fmt.Sprintf("%v", err)
-		fmt.Println("Unable to parse default font:" + g.fontType)
-		fmt.Println("Using monospace")
-		g.font, err = truetype.Parse(mfont.Monospace())
-		if err != nil {
-			log.Fatalf("error parsing font: %v", err)
-		}
+		log.Fatalf("error opening font asset: %v", err)
 	}
+	defer f.Close()
+	raw, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatalf("error reading font: %v", err)
+	}
+	g.font, err = freetype.ParseFont(raw)
+	if err != nil {
+		log.Fatalf("error parsing font: %v", err)
+	}
+
+	// TODO: fallback on monospace font
+	// g.font, err = truetype.Parse(mfont.Default())
+	// g.fontType = "Default"
+	// if err != nil {
+	// 	g.fontType = fmt.Sprintf("%v", err)
+	// 	fmt.Println("Unable to parse default font:" + g.fontType)
+	// 	fmt.Println("Using monospace")
+	// 	g.font, err = truetype.Parse(mfont.Monospace())
+	// 	if err != nil {
+	// 		log.Fatalf("error parsing font: %v", err)
+	// 	}
+	// }
 
 }
 
@@ -111,7 +130,7 @@ func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
 	
 	// Write the resolution on the sprite
 	
-	resolutionText := fmt.Sprintf(/*"%vpx * %vpx - %v"*/"%v", /*sz.WidthPx, sz.HeightPx, */g.fontType)
+	resolutionText := fmt.Sprintf("%vpx * %vpx - %v", sz.WidthPx, sz.HeightPx, g.fontType)
 	d = &font.Drawer{
 		Dst: textSprite.RGBA,
 		Src: foreground,
