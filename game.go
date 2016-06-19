@@ -16,6 +16,7 @@ import (
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
+	mfont "golang.org/x/mobile/exp/font"
 	"golang.org/x/image/math/fixed"
 	"golang.org/x/mobile/event/size"
 	"golang.org/x/mobile/exp/gl/glutil"
@@ -27,14 +28,12 @@ import (
 
 const (
 	dpi           = 72
-	smallFontSize = 20
-	bigFontSize   = 100
-	ttfFile		  = "System San Francisco Display Regular.ttf"
+	smallFontSize = 24
+	bigFontSize   = 96
 )
 
 type Game struct {
 	font     *truetype.Font
-	fontType string
 	lastCalc clock.Time // when we last calculated a frame
 }
 
@@ -44,37 +43,39 @@ func NewGame() *Game {
 	return &g
 }
 
-func (g *Game) reset() {
-	var err error
-
-	g.fontType = ttfFile
-	f, err := asset.Open(ttfFile)
+func (g *Game) loadFont() {
+	f, err := asset.Open("System San Francisco Display Regular.ttf")
 	if err != nil {
-		log.Fatalf("error opening font asset: %v", err)
+		fmt.Printf("error opening font asset: %v\n", err)
+		g.loadFallbackFont()
+		return
 	}
 	defer f.Close()
 	raw, err := ioutil.ReadAll(f)
 	if err != nil {
-		log.Fatalf("error reading font: %v", err)
+		fmt.Printf("error reading font: %v\n", err)
+		g.loadFallbackFont()
+		return
 	}
 	g.font, err = freetype.ParseFont(raw)
 	if err != nil {
-		log.Fatalf("error parsing font: %v", err)
+		fmt.Printf("error parsing font: %v\n", err)
+		g.loadFallbackFont()
+		return
 	}
+}
 
-	// TODO: fallback on monospace font
-	// g.font, err = truetype.Parse(mfont.Default())
-	// g.fontType = "Default"
-	// if err != nil {
-	// 	g.fontType = fmt.Sprintf("%v", err)
-	// 	fmt.Println("Unable to parse default font:" + g.fontType)
-	// 	fmt.Println("Using monospace")
-	// 	g.font, err = truetype.Parse(mfont.Monospace())
-	// 	if err != nil {
-	// 		log.Fatalf("error parsing font: %v", err)
-	// 	}
-	// }
+func (g *Game) loadFallbackFont() {
+	var err error
+	fmt.Println("using Monospace font") // Default font doesn't work on Darwin
+	g.font, err = truetype.Parse(mfont.Monospace())
+	if err != nil {
+		log.Fatalf("error parsing Monospace font: %v", err)
+	}
+}
 
+func (g *Game) reset() {
+	g.loadFont()
 }
 
 func (g *Game) Touch(down bool) {
@@ -96,8 +97,8 @@ func (g *Game) calcFrame() {
 
 func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
 	
+	// TODO
 	height := 400
-
 	foreground := image.White
 	background := image.NewUniform(color.RGBA{0x35, 0x67, 0x99, 0xFF})
 
@@ -108,9 +109,7 @@ func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
 	draw.Draw(textSprite.RGBA, textSprite.RGBA.Bounds(), background, image.ZP, draw.Src)
 
 	// Write the Loading... text on the sprite
-	
 	loadingText := "Loading" + strings.Repeat(".", int(time.Now().Unix()%4))
-	
 	d := &font.Drawer{
 		Dst: textSprite.RGBA,
 		Src: foreground,
@@ -129,8 +128,7 @@ func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
 	d.DrawString(loadingText)
 	
 	// Write the resolution on the sprite
-	
-	resolutionText := fmt.Sprintf("%vpx * %vpx - %v", sz.WidthPx, sz.HeightPx, g.fontType)
+	resolutionText := fmt.Sprintf("%vpx * %vpx", sz.WidthPx, sz.HeightPx)
 	d = &font.Drawer{
 		Dst: textSprite.RGBA,
 		Src: foreground,
