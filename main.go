@@ -35,6 +35,18 @@ func main() {
 					onStop()
 					glctx = nil
 				}
+				// switch e.Crosses(lifecycle.StageFocused) {
+				// case lifecycle.CrossOn:
+				// 	glctx, _ = e.DrawContext.(gl.Context)
+				// 	onStart(glctx)
+				// 	a.Send(paint.Event{})
+				// case lifecycle.CrossOff:
+				// 	glctx.ClearColor(1, 1, 1, 1)
+				// 	glctx.Clear(gl.COLOR_BUFFER_BIT)
+				// 	a.Publish()
+				// 	onStop()
+				// 	glctx = nil
+				// }
 			case size.Event:
 				sz = e
 			case paint.Event:
