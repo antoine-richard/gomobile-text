@@ -11,7 +11,7 @@ import (
 	mfont "golang.org/x/mobile/exp/font"
 )
 
-func loadCustomFont() (font *truetype.Font, err error) {
+func LoadCustomFont() (font *truetype.Font, err error) {
 	file, err := asset.Open("System San Francisco Display Regular.ttf")
 	if err != nil {
 		fmt.Printf("error opening font asset: %v\n", err)

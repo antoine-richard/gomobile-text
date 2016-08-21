@@ -19,8 +19,9 @@ import (
 )
 
 type Game struct {
-	lastCalc clock.Time // when we last calculated a frame
-	font     *truetype.Font
+	lastCalc   clock.Time // when we last calculated a frame
+	touchCount uint64
+	font       *truetype.Font
 }
 
 func NewGame() *Game {
@@ -31,7 +32,7 @@ func NewGame() *Game {
 
 func (g *Game) reset() {
 	var err error
-	g.font, err = loadCustomFont()
+	g.font, err = LoadCustomFont()
 	if err != nil {
 		log.Fatalf("error parsing font: %v", err)
 	}
@@ -39,7 +40,7 @@ func (g *Game) reset() {
 
 func (g *Game) Touch(down bool) {
 	if down {
-		fmt.Println("touch")
+		g.touchCount++
 	}
 }
 
@@ -55,38 +56,38 @@ func (g *Game) calcFrame() {
 }
 
 func (g *Game) Render(sz size.Event, glctx gl.Context, images *glutil.Images) {
+	headerHeightPx, footerHeightPx := 100, 100
+
+	header := &TextSprite{
+		text:            fmt.Sprintf("%vpx * %vpx", sz.WidthPx, sz.HeightPx),
+		font:            g.font,
+		widthPx:         sz.WidthPx,
+		heightPx:        headerHeightPx,
+		textColor:       image.White,
+		backgroundColor: image.NewUniform(color.RGBA{0x31, 0xA6, 0xA2, 0xFF}),
+		fontSize:        24,
+		xPt:             0,
+		yPt:             0,
+		align:           Left,
+	}
+	header.Render(sz)
 
 	loading := &TextSprite{
 		placeholder:     "Loading...",
 		text:            "Loading" + strings.Repeat(".", int(time.Now().Unix()%4)),
 		font:            g.font,
 		widthPx:         sz.WidthPx,
-		heightPx:        400,
+		heightPx:        sz.HeightPx - headerHeightPx - footerHeightPx,
 		textColor:       image.White,
 		backgroundColor: image.NewUniform(color.RGBA{0x35, 0x67, 0x99, 0xFF}),
 		fontSize:        96,
 		xPt:             0,
-		yPt:             0,
+		yPt:             PxToPt(sz, headerHeightPx),
 	}
 	loading.Render(sz)
 
-	resolution := &TextSprite{
-		text:            fmt.Sprintf("%vpx * %vpx", sz.WidthPx, sz.HeightPx),
-		font:            g.font,
-		widthPx:         sz.WidthPx,
-		heightPx:        100,
-		textColor:       image.White,
-		backgroundColor: image.NewUniform(color.RGBA{0x31, 0xA6, 0xA2, 0xFF}),
-		fontSize:        24,
-		xPt:             0,
-		yPt:             140, // FIXME: magic number
-		align:           Left,
-	}
-	resolution.Render(sz)
-
-	footerHeightPx := 100
 	footer := &TextSprite{
-		text:            fmt.Sprintf("Antoine"),
+		text:            fmt.Sprintf("%d", g.touchCount),
 		font:            g.font,
 		widthPx:         sz.WidthPx,
 		heightPx:        footerHeightPx,
